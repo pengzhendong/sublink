@@ -1,12 +1,34 @@
-export function convertProxyToUri(proxy) {
+export function convertProxyToUri(proxy, userAgent = '') {
     switch (proxy?.type) {
         case 'vless':
             return buildVlessUri(proxy);
         case 'wireguard':
-            return buildWireguardUri(proxy);
+            return /shadowrocket/i.test(userAgent)
+                ? buildShadowrocketWireguardUri(proxy)
+                : buildWireguardUri(proxy);
         default:
             return null;
     }
+}
+
+function buildShadowrocketWireguardUri(proxy) {
+    if (!proxy.private_key || !proxy.peer_public_key || !proxy.server || !proxy.server_port) return null;
+
+    const params = new URLSearchParams();
+    params.set('publicKey', proxy.peer_public_key);
+    params.set('privateKey', proxy.private_key);
+    if (Array.isArray(proxy.local_address) && proxy.local_address.length > 0) {
+        params.set('ip', proxy.local_address.join(','));
+    }
+    if (proxy.pre_shared_key) params.set('presharedKey', proxy.pre_shared_key);
+    if (Array.isArray(proxy.reserved)) params.set('reserved', proxy.reserved.join(','));
+    if (proxy.mtu !== undefined) params.set('mtu', String(proxy.mtu));
+    if (proxy.persistent_keepalive !== undefined) {
+        params.set('keepalive', String(proxy.persistent_keepalive));
+    }
+    params.set('udp', proxy.udp === false ? '0' : '1');
+
+    return `wg://${formatHost(proxy.server)}:${proxy.server_port}?${params.toString()}#${encodeURIComponent(proxy.tag || 'WireGuard')}`;
 }
 
 function buildVlessUri(proxy) {

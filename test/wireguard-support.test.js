@@ -102,7 +102,7 @@ describe('WireGuard subscription support', () => {
         });
     });
 
-    it('turns structured WARP and VLESS subscriptions into an Xray-compatible URI list', async () => {
+    it('turns structured WARP and VLESS subscriptions into a Shadowrocket-compatible URI list', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => new Response(wireguardYaml, {
             status: 200,
             headers: { 'content-type': 'text/yaml' }
@@ -118,10 +118,29 @@ describe('WireGuard subscription support', () => {
 
         expect(response.status).toBe(200);
         expect(lines).toHaveLength(2);
-        expect(lines[0]).toMatch(/^wireguard:\/\//);
-        expect(lines[0]).toContain('address=172.16.0.2%2F32%2C2606%3A4700%3A110%3A%3A1%2F128');
+        expect(lines[0]).toMatch(/^wg:\/\/162\.159\.192\.254:2408\?/);
+        expect(lines[0]).toContain('publicKey=');
+        expect(lines[0]).toContain('privateKey=');
+        expect(lines[0]).toContain('ip=172.16.0.2%2F32%2C2606%3A4700%3A110%3A%3A1%2F128');
         expect(lines[1]).toMatch(/^vless:\/\//);
         expect(lines[1]).toContain('type=ws');
         expect(lines[1]).toContain('host=edge.example.com');
+    });
+
+    it('keeps the standard WireGuard URI for non-Shadowrocket Xray clients', async () => {
+        vi.stubGlobal('fetch', vi.fn(async () => new Response(wireguardYaml, {
+            status: 200,
+            headers: { 'content-type': 'text/yaml' }
+        })));
+        const app = createTestApp();
+        const source = 'https://honeybee.example.com/cloudflare.yaml?token=test';
+
+        const response = await app.request(`http://localhost/xray?config=${encodeURIComponent(source)}`, {
+            headers: { 'User-Agent': 'v2rayN/7.0' }
+        });
+        const decoded = decodeBase64(await response.text());
+
+        expect(response.status).toBe(200);
+        expect(decoded.split('\n')[0]).toMatch(/^wireguard:\/\//);
     });
 });

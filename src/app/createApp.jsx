@@ -286,7 +286,7 @@ export function createApp(bindings = {}) {
                         subscriptionUserinfo = fetchedUserinfo;
                     }
                     const text = await response.text();
-                    let processed = convertStructuredSubscriptionToUris(text)
+                    let processed = convertStructuredSubscriptionToUris(text, userAgent)
                         ?? tryDecodeSubscriptionLines(text, { decodeUriComponent: true });
                     if (!Array.isArray(processed)) processed = [processed];
                     finalProxyList.push(...processed.filter(item => typeof item === 'string' && item.trim() !== ''));
@@ -414,13 +414,13 @@ export function createApp(bindings = {}) {
     return app;
 }
 
-function convertStructuredSubscriptionToUris(content) {
+function convertStructuredSubscriptionToUris(content, userAgent = '') {
     const parsed = parseSubscriptionContent(content);
     if (!parsed || Array.isArray(parsed) || !Array.isArray(parsed.proxies) || parsed.proxies.length === 0) {
         return null;
     }
 
-    const uris = parsed.proxies.map(convertProxyToUri);
+    const uris = parsed.proxies.map(proxy => convertProxyToUri(proxy, userAgent));
     return uris.every(Boolean) ? uris : null;
 }
 
