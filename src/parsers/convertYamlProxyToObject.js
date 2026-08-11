@@ -258,7 +258,53 @@ export function convertYamlProxyToObject(p) {
                 tls
             };
         }
+        case 'wireguard': {
+            const localAddress = [
+                normalizeWireguardAddress(p.ip, 32),
+                normalizeWireguardAddress(p.ipv6, 128)
+            ].filter(Boolean);
+            return {
+                tag: name,
+                type: 'wireguard',
+                server: p.server,
+                server_port: parseInt(p.port),
+                private_key: p['private-key'] ?? p.private_key,
+                peer_public_key: p['public-key'] ?? p.peer_public_key,
+                pre_shared_key: p['pre-shared-key'] ?? p['preshared-key'] ?? p.pre_shared_key,
+                local_address: localAddress,
+                allowed_ips: normalizeWireguardList(p['allowed-ips'] ?? p.allowed_ips),
+                reserved: normalizeReserved(p.reserved),
+                mtu: normalizeOptionalNumber(p.mtu),
+                udp: p.udp !== undefined ? !!p.udp : true,
+                persistent_keepalive: p['persistent-keepalive'] ?? p.keepalive
+            };
+        }
         default:
             return null;
     }
+}
+
+function normalizeWireguardAddress(value, defaultPrefix) {
+    if (value === undefined || value === null || value === '') return undefined;
+    const address = String(value).trim().replace(/^\[([^\]]+)](\/\d+)?$/, '$1$2');
+    return address.includes('/') ? address : `${address}/${defaultPrefix}`;
+}
+
+function normalizeWireguardList(value) {
+    if (value === undefined || value === null || value === '') return [];
+    const values = Array.isArray(value) ? value : String(value).split(',');
+    return values.map(item => String(item).trim()).filter(Boolean);
+}
+
+function normalizeReserved(value) {
+    const bytes = normalizeWireguardList(value).map(Number);
+    return bytes.length > 0 && bytes.every(byte => Number.isInteger(byte) && byte >= 0 && byte <= 255)
+        ? bytes
+        : undefined;
+}
+
+function normalizeOptionalNumber(value) {
+    if (value === undefined || value === null || value === '') return undefined;
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
 }

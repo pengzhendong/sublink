@@ -11,6 +11,8 @@ import { ClashConfigBuilder } from '../builders/ClashConfigBuilder.js';
 import { SurgeConfigBuilder } from '../builders/SurgeConfigBuilder.js';
 import { createTranslator, resolveLanguage } from '../i18n/index.js';
 import { encodeBase64, tryDecodeSubscriptionLines } from '../utils.js';
+import { parseSubscriptionContent } from '../parsers/subscription/subscriptionContentParser.js';
+import { convertProxyToUri } from '../producers/proxyUri.js';
 import { APP_NAME, APP_SUBTITLE } from '../constants.js';
 import { ShortLinkService } from '../services/shortLinkService.js';
 import { ConfigStorageService } from '../services/configStorageService.js';
@@ -284,7 +286,8 @@ export function createApp(bindings = {}) {
                         subscriptionUserinfo = fetchedUserinfo;
                     }
                     const text = await response.text();
-                    let processed = tryDecodeSubscriptionLines(text, { decodeUriComponent: true });
+                    let processed = convertStructuredSubscriptionToUris(text)
+                        ?? tryDecodeSubscriptionLines(text, { decodeUriComponent: true });
                     if (!Array.isArray(processed)) processed = [processed];
                     finalProxyList.push(...processed.filter(item => typeof item === 'string' && item.trim() !== ''));
                 } catch (e) {
@@ -409,6 +412,16 @@ export function createApp(bindings = {}) {
     });
 
     return app;
+}
+
+function convertStructuredSubscriptionToUris(content) {
+    const parsed = parseSubscriptionContent(content);
+    if (!parsed || Array.isArray(parsed) || !Array.isArray(parsed.proxies) || parsed.proxies.length === 0) {
+        return null;
+    }
+
+    const uris = parsed.proxies.map(convertProxyToUri);
+    return uris.every(Boolean) ? uris : null;
 }
 
 export function parseSelectedRules(raw) {

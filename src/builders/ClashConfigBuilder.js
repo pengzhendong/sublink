@@ -299,6 +299,28 @@ export class ClashConfigBuilder extends BaseConfigBuilder {
                     ...(proxy['idle-session-timeout'] !== undefined ? { 'idle-session-timeout': proxy['idle-session-timeout'] } : {}),
                     ...(proxy['min-idle-session'] !== undefined ? { 'min-idle-session': proxy['min-idle-session'] } : {}),
                 };
+            case 'wireguard': {
+                const ipv4 = proxy.local_address?.find(address => !address.includes(':'));
+                const ipv6 = proxy.local_address?.find(address => address.includes(':'));
+                return {
+                    name: proxy.tag,
+                    type: 'wireguard',
+                    server: proxy.server,
+                    port: proxy.server_port,
+                    ip: ipv4,
+                    ipv6,
+                    'private-key': proxy.private_key,
+                    'public-key': proxy.peer_public_key,
+                    ...(proxy.pre_shared_key ? { 'pre-shared-key': proxy.pre_shared_key } : {}),
+                    ...(proxy.allowed_ips?.length ? { 'allowed-ips': proxy.allowed_ips } : {}),
+                    ...(proxy.reserved?.length ? { reserved: proxy.reserved } : {}),
+                    ...(proxy.mtu !== undefined ? { mtu: proxy.mtu } : {}),
+                    ...(proxy.persistent_keepalive !== undefined
+                        ? { 'persistent-keepalive': proxy.persistent_keepalive }
+                        : {}),
+                    udp: proxy.udp !== false
+                };
+            }
             default:
                 return proxy; // Return as-is if no specific conversion is defined
         }
