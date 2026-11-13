@@ -13,7 +13,7 @@ import { createTranslator, resolveLanguage } from '../i18n/index.js';
 import { encodeBase64, tryDecodeSubscriptionLines } from '../utils.js';
 import { parseSubscriptionContent } from '../parsers/subscription/subscriptionContentParser.js';
 import { convertProxyToUri } from '../producers/proxyUri.js';
-import { APP_NAME, APP_SUBTITLE } from '../constants.js';
+import { APP_SUBTITLE } from '../constants.js';
 import { ShortLinkService } from '../services/shortLinkService.js';
 import { ConfigStorageService } from '../services/configStorageService.js';
 import { ServiceError, MissingDependencyError } from '../services/errors.js';
@@ -45,20 +45,13 @@ export function createApp(bindings = {}) {
         const subtitle = APP_SUBTITLE[lang] || APP_SUBTITLE['zh-CN'];
 
         return c.html(
-            <Layout title={t('pageTitle')} description={t('pageDescription')} keywords={t('pageKeywords')}>
+            <Layout lang={lang} title={t('pageTitle')} description={t('pageDescription')} keywords={t('pageKeywords')}>
                 <div class="flex flex-col min-h-screen">
                     <Navbar />
                     <main class="flex-1">
-                        <div class="container mx-auto px-4 py-8 pt-24">
+                        <div class="container mx-auto px-4 py-4 md:px-8 md:py-8">
                             <div class="max-w-4xl mx-auto">
-                                <div class="text-center mb-12 pt-8">
-                                    <h1 class="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-4 tracking-tight">
-                                        {APP_NAME}
-                                    </h1>
-                                    <p class="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                                        {subtitle}
-                                    </p>
-                                </div>
+                                <p class="mb-4 text-sm text-gray-600 dark:text-gray-400">{subtitle}</p>
                                 <Form t={t} lang={lang} />
                             </div>
                         </div>
